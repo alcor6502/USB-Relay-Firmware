@@ -13,14 +13,14 @@
 	"S"	Switch command - accepted values 1 (on) or 0 (off) Example: - "#S1!" (Switch on the relay)
 	"P"	Pulse command - accepted values 1 to 9 (100 msec multiples) - Example: "#P3!" (Switch on the relay for 300 msec)
 	"F" Fan control command - accepted values 0 to 100 - Example: "#F90!" (Fan on at 90% PWM)
-	"W" PWM control command (B2 Closed) - accepted values 0 to 100 - Example: "#F90!" (Fan on at 90% PWM)
+	"W" PWM control command (B4 or B5 Closed) - accepted values 0 to 100 - Example: "#F90!" (Fan on at 90% PWM)
 	"I"	Input line read - Example: "#I!" (Return the status of the input)
 	"T"	Tach line read - Example: "#T!" (Return the rotation per minute of the fan)
 	"O"	Duty cycle PWM read - Example: "#O!" (Return the PWM value of the output)
-	"Z"	Output PWM Frequency - accepted values 10 to 48000 - Example: "#F90!" (Fan on at 90% PWM)
+	"Z"	Output PWM Frequency - accepted values 10 to 48000 - Example: '#F90!' (Fan on at 90% PWM)
 	"A"	Servo mode - accepted values 0 to 200 - Example: "#A75!" servo at 0 Degree
 
-    To send a command in BASH:  echo -e "#S1!" > /dev/serial/by-id/usb-IT_Logic_USB_Relay-if00
+    To send a command in BASH:  echo -e '#S1!' > /dev/serial/by-id/usb-IT_Logic_USB_Relay-if00
     To read a result in BASH:   read -d'~' -t1 INPUT < /dev/serial/by-id/usb-IT_Logic_USB_Relay-if00
 */
 
@@ -44,12 +44,13 @@ void SetupTIM2() {							// Manually Configure TIM2 CH2 in PWM Mode
 	TIM2->CR1 &= ~TIM_CR1_DIR;				// Set counting direction
 	TIM2->PSC = TRIGGER_TIMER_PSC - 1;		// Set prescaler
 	TIM2->ARR = TRIGGER_TIMER_ARR - 1;		// Set Auto Reload Value, sets the PRI
-	TIM2->CCR2 = 0;							// Set output compare register for channel 2
-	TIM2->CCMR1 &= ~TIM_CCMR1_OC2M_Msk; 	// Clear bits
-	TIM2->CCMR1 |= (TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2); // Select PWM mode for channel 2 - 110 - PWM mode 1
-	TIM2->CCMR1 |= TIM_CCMR1_OC2PE;			// Enable register preload
-	TIM2->CCER &= ~TIM_CCER_CC2P;			// Select output polarity to 0 - active high
-	TIM2->CCER |= TIM_CCER_CC2E;			// Enable output of channel 2
+	TIM2->CCR1 = 0;							// Set output compare register for channel 1
+	TIM2->CCMR1 &= ~TIM_CCMR1_CC1S_Msk; 	// Clear bits for CC1S
+	TIM2->CCMR1 &= ~TIM_CCMR1_OC1M_Msk; 	// Clear bits for OC1M
+	TIM2->CCMR1 |= (TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2); // Select PWM mode for channel 1 - 110 - PWM mode 1
+	TIM2->CCMR1 |= TIM_CCMR1_OC1PE;			// Enable register preload
+	TIM2->CCER &= ~TIM_CCER_CC1P;			// Select output polarity to 0 - active high
+	TIM2->CCER |= TIM_CCER_CC1E;			// Enable output of channel 1
 	TIM2->CR1 |= TIM_CR1_CEN;				// Enable TIM2
 }
 
@@ -136,7 +137,7 @@ void TachIncrement() {
 
 
 void UpdateLeds() {				// Update the status led depending on coil
-	if (TIM2->CCR2 > 0 ) {		// Check if the PWM value is 1 (On state)
+	if (TIM2->CCR1 > 0 ) {		// Check if the PWM value is 1 (On state)
 		  HAL_GPIO_WritePin(LED_OFF_GPIO_Port, LED_OFF_Pin,GPIO_PIN_RESET);
 		  HAL_GPIO_WritePin(LED_ON_GPIO_Port, LED_ON_Pin,GPIO_PIN_SET);
 	}
@@ -149,12 +150,12 @@ void UpdateLeds() {				// Update the status led depending on coil
 
 void CheckButton() {
 	if ((HAL_GPIO_ReadPin(MAN_SW_GPIO_Port, MAN_SW_Pin) == GPIO_PIN_SET)  && (cmdData.buttonState == RELEASED)) {
-		if (TIM2->CCR2 > 0 ) {					// Check if the PWM value is 1 (On state)
-			cmdData.lastOnState = TIM2->CCR2;	// Save the PWM value in case the button is pressed again
-			TIM2->CCR2 = 0;						// Switch relay to Off
+		if (TIM2->CCR1 > 0 ) {					// Check if the PWM value is 1 (On state)
+			cmdData.lastOnState = TIM2->CCR1;	// Save the PWM value in case the button is pressed again
+			TIM2->CCR1 = 0;						// Switch relay to Off
 		}
 		else {
-			TIM2->CCR2 = cmdData.lastOnState;	// Switch relay to ON
+			TIM2->CCR1 = cmdData.lastOnState;	// Switch relay to ON
 		}
 		cmdData.buttonState = PRESS_START;
 		cmdData.debounceStop  = HAL_GetTick() + DEBOUNCE_TIME;
@@ -175,7 +176,7 @@ void CheckDelays() {
 	}
 	if ((cmdData.pulseOn == 1) && (HAL_GetTick() >= cmdData.pulseStop)){
 		cmdData.pulseOn = 0;
-		TIM2->CCR2 = 0;				// Switch relay to Off
+		TIM2->CCR1 = 0;				// Switch relay to Off
 	}
 	if ((cmdData.sendTxBuf == 1) && (HAL_GetTick() >= cmdData.sendTxBufStart)){
 		cmdData.sendTxBuf = 0;
@@ -200,13 +201,13 @@ static void CmdParse() {
 		(cmdData.cmdBuf[0] == 'F') ||
 		(cmdData.cmdBuf[0] == 'W') ||
 		(cmdData.cmdBuf[0] == 'Z'))) {			// These commands trigger TIM2 to default values exiting servo mode
-		TIM2->CCR2 = 0;							// Disable output
+		TIM2->CCR1 = 0;							// Disable output
 		TIM2->CR1 &= ~TIM_CR1_CEN;				// Ensure TIM2 is disabled
 		TIM2->CNT = 0;							// Reset counter
 		TIM2->SR = 0;							// Clear status register
 		TIM2->PSC = TRIGGER_TIMER_PSC - 1;		// Set prescaler
 		TIM2->ARR = TRIGGER_TIMER_ARR - 1;		// Set Auto Reload Value, sets the PRI
-		TIM2->CCER &= ~TIM_CCER_CC2P;			// Select output polarity to 0 - active high
+		TIM2->CCER &= ~TIM_CCER_CC1P;			// Select output polarity to 0 - active high
 		TIM2->CR1 |= TIM_CR1_CEN;				// Enable TIM2
 		servoMode = 0;
 	}
@@ -221,8 +222,8 @@ static void CmdParse() {
 		if (asciiValue > 1) {
 			asciiValue = 1;
 		}
-		TIM2->CCER &= ~TIM_CCER_CC2P;			// Select output polarity to 0 - active high
-		TIM2->CCR2 = asciiValue * 100;
+		TIM2->CCER &= ~TIM_CCER_CC1P;			// Select output polarity to 0 - active high
+		TIM2->CCR1 = asciiValue * 100;
 		break;
 
 
@@ -233,8 +234,8 @@ static void CmdParse() {
 		if (asciiValue < 1) {
 			asciiValue = 1;
 		}
-		TIM2->CCER &= ~TIM_CCER_CC2P;			// Select output polarity to 0 - active high
-		TIM2->CCR2 = 100;		// Switch relay to ON
+		TIM2->CCER &= ~TIM_CCER_CC1P;			// Select output polarity to 0 - active high
+		TIM2->CCR1 = 100;		// Switch relay to ON
 		cmdData.pulseOn = 1;
 		cmdData.pulseStop  = HAL_GetTick() + (asciiValue * 100);	// Set the duration of the pulse
 		break;
@@ -244,8 +245,8 @@ static void CmdParse() {
 		if (asciiValue > 100) {
 			asciiValue = 100;
 		}
-		TIM2->CCER |= TIM_CCER_CC2P;			// Select output polarity to 1 - active low
-		TIM2->CCR2 = asciiValue;
+		TIM2->CCER |= TIM_CCER_CC1P;			// Select output polarity to 1 - active low
+		TIM2->CCR1 = asciiValue;
 		break;
 
 
@@ -253,8 +254,8 @@ static void CmdParse() {
 		if (asciiValue > 100) {
 			asciiValue = 100;
 		}
-		TIM2->CCER &= ~TIM_CCER_CC2P;			// Select output polarity to 0 - active high
-		TIM2->CCR2 = asciiValue;
+		TIM2->CCER &= ~TIM_CCER_CC1P;			// Select output polarity to 0 - active high
+		TIM2->CCR1 = asciiValue;
 		break;
 
 
@@ -269,7 +270,7 @@ static void CmdParse() {
 
 
 	case 'O':	// *****  "O" Command  *****
-		NumberToAscii((uint32_t)(TIM2->CCR2));
+		NumberToAscii((uint32_t)(TIM2->CCR1));
 		break;
 
 	case 'Z':	// *****  "Z" Command  *****
@@ -286,20 +287,20 @@ static void CmdParse() {
 
 	case 'A':	// *****  "A" Command  *****
 		if (servoMode == 0)  {
-			TIM2->CCR2 = 0;							// Disable output
+			TIM2->CCR1 = 0;							// Disable output
 			TIM2->CR1 &= ~TIM_CR1_CEN;				// Ensure TIM2 is disabled
 			TIM2->CNT = 0;							// Reset counter
 			TIM2->SR = 0;							// Clear status register
 			TIM2->PSC = 960 - 1;					// 50 Hz (20ms) frequency
 			TIM2->ARR = 1000 -1;					// 1.000 PWM resolution
-			TIM2->CCER |= TIM_CCER_CC2P;			// Select output polarity to 1 - active low
+			TIM2->CCER |= TIM_CCER_CC1P;			// Select output polarity to 1 - active low
 			TIM2->CR1 |= TIM_CR1_CEN;				// Enable TIM2
 			servoMode = 1;							// Force reset TM2 when exit from servo mode
 		}
 		if (asciiValue > 200) {
 			asciiValue = 200;
 		}
-		TIM2->CCR2 = asciiValue;			// The servo goes from 0 to 200
+		TIM2->CCR1 = asciiValue;			// The servo goes from 0 to 200
 		break;
 
     default:
