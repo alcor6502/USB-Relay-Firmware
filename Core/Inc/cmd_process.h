@@ -17,6 +17,7 @@
 #define CMD_START '#'		// Symbol to identify the beginning of a command
 #define CMD_END '!'			// Symbol to identify the end of a command
 #define TX_DELIM '~'		// Symbol to identify the end of the Tx message
+//#define TX_DELIM 0x26		// Symbol to identify the end of the Tx message
 #define TX_DELAY 10			// Delay in msec between receiving the command and the output of the result
 
 // TIM2 CH2 PWM Parameters

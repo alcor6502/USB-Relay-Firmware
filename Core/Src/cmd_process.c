@@ -20,8 +20,33 @@
 	"Z"	Output PWM Frequency - accepted values 10 to 48000 - Example: '#F90!' (Fan on at 90% PWM)
 	"A"	Servo mode - accepted values 0 to 200 - Example: "#A75!" servo at 0 Degree
 
-    To send a command in BASH:  echo -e '#S1!' > /dev/serial/by-id/usb-IT_Logic_USB_Relay-if00
-    To read a result in BASH:   read -d'~' -t1 INPUT < /dev/serial/by-id/usb-IT_Logic_USB_Relay-if00
+	### How to use on Linux System in Bash:
+    	To send a command
+    		echo -e '#S1!' > /dev/serial/by-id/usb-IT_Logic_USB_Relay-if00
+
+    	To read a result and store in a variable FAN_TACH:
+    	    echo -e '#T!' > /dev/serial/by-id/usb-IT_Logic_USB_Relay-if00
+			read -d'~' -t1 FAN_TACH < /dev/serial/by-id/usb-IT_Logic_USB_Relay-if00
+			echo $FAN_TACH
+
+	### How to use on Mac OS in Bash:
+    	To send a command
+    		echo -e '#S1!' > /dev/cu.usbmodem8301
+
+    	To read a result and store in a variable FAN_TACH:
+    	    echo -e '#T!' > /dev/cu.usbmodem8301
+			read -d'~' -t1 FAN_TACH < /dev/cu.usbmodem8301
+			echo $FAN_TACH
+
+	### How to use on Windows in Shell:
+	    To send a command
+    		echo -e '#S1!' > /dev/cu.usbmodem8301
+
+    	To read a result and store in a variable FAN_TACH:
+    	    echo -e '#T!' > /dev/cu.usbmodem8301
+			read -d'~' -t1 FAN_TACH < /dev/cu.usbmodem8301
+			echo $FAN_TACH
+
 */
 
 /*
