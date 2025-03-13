@@ -3,3 +3,4 @@
 /Release/*
 !/Release/USB-Relay-Firmware.elf
 /Debug/
+/Release/
