@@ -40,11 +40,11 @@
 			read -d'~' -t1 FAN_TACH < /dev/cu.usbmodem8301
 			echo $FAN_TACH
 
-	### How to use on Windows in Shell:
+	### How to use on Windows in Terminal:
 	    To send a command
-    		
+    		echo S1! > COM3
 
-    	To read a result and store in a variable FAN_TACH:
+    	Refer on the hackaday article for  more comprehensive script in PowerShell.
 
 */
 
