@@ -1,6 +1,11 @@
+# Hidden directories
 .DS_Store
+.settings/
+.metadata/
+
+# Build directories except release binary
 !/Release/
-/Release/*
 !/Release/USB-Relay-Firmware.elf
 /Debug/
 /Release/
+
