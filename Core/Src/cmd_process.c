@@ -10,42 +10,41 @@
 	Command structure:
 	"#"	Command prefix
 	"!"	Command suffix
-	"S"	Switch command - accepted values 1 (on) or 0 (off) Example: - "#S1!" (Switch on the relay)
-	"P"	Pulse command - accepted values 1 to 9 (100 msec multiples) - Example: "#P3!" (Switch on the relay for 300 msec)
-	"F" Fan control command - accepted values 0 to 100 - Example: "#F90!" (Fan on at 90% PWM)
-	"W" PWM control command (B4 or B5 Closed) - accepted values 0 to 100 - Example: "#F90!" (Fan on at 90% PWM)
-	"I"	Input line read - Example: "#I!" (Return the status of the input)
-	"T"	Tach line read - Example: "#T!" (Return the rotation per minute of the fan)
-	"O"	Duty cycle PWM read - Example: "#O!" (Return the PWM value of the output)
-	"Z"	Output PWM Frequency - accepted values 10 to 48000 - Example: '#F90!' (Fan on at 90% PWM)
+	"S"	Switch command - accepted values 1 (on) or 0 (off) Example: - '#S1!' (Switch on the relay)
+	"P"	Pulse command - accepted values 1 to 9 (100 msec multiples) - Example: '#P3!' (Switch on the relay for 300 msec)
+	"F" Fan control command - accepted values 0 to 100 - Example: '#F90!' (Fan on at 90% PWM)
+	"W" PWM control command (B4 or B5 Closed) - accepted values 0 to 100 - Example: '#W40!' (Fan on at 40% PWM)
+    "A"	Servo mode - accepted values 0 to 200 - Example: '#A75!' servo at 0 Degree
+	"Z"	Output PWM Frequency - accepted values 10 to 48000 - Example: '#Z15000!' (PWM frequency of 15 KHz)
+	"I"	Input line read - Example: '#I!' (Return the status of the input)
+	"T"	Tach line read - Example: '#T!' (Return the rotation per minute of the fan)
+	"O"	Duty cycle PWM read - Example: '#O!' (Return the PWM value of the output)
+
 	"A"	Servo mode - accepted values 0 to 200 - Example: "#A75!" servo at 0 Degree
 
 	### How to use on Linux System in Bash:
     	To send a command
-    		echo -e '#S1!' > /dev/serial/by-id/usb-IT_Logic_USB_Relay-if00
+    		echo '#S1!' > /dev/serial/by-id/usb-IT_Logic_USB_Relay-if00
 
     	To read a result and store in a variable FAN_TACH:
-    	    echo -e '#T!' > /dev/serial/by-id/usb-IT_Logic_USB_Relay-if00
+    	    echo '#T!' > /dev/serial/by-id/usb-IT_Logic_USB_Relay-if00
 			read -d'~' -t1 FAN_TACH < /dev/serial/by-id/usb-IT_Logic_USB_Relay-if00
 			echo $FAN_TACH
 
 	### How to use on Mac OS in Bash:
     	To send a command
-    		echo -e '#S1!' > /dev/cu.usbmodem8301
+    		echo '#S1!' > /dev/cu.usbmodem8301
 
     	To read a result and store in a variable FAN_TACH:
-    	    echo -e '#T!' > /dev/cu.usbmodem8301
+    	    echo '#T!' > /dev/cu.usbmodem8301
 			read -d'~' -t1 FAN_TACH < /dev/cu.usbmodem8301
 			echo $FAN_TACH
 
-	### How to use on Windows in Shell:
+	### How to use on Windows in Terminal:
 	    To send a command
-    		echo -e '#S1!' > /dev/cu.usbmodem8301
+    		echo S1! > COM3
 
-    	To read a result and store in a variable FAN_TACH:
-    	    echo -e '#T!' > /dev/cu.usbmodem8301
-			read -d'~' -t1 FAN_TACH < /dev/cu.usbmodem8301
-			echo $FAN_TACH
+    	Refer on the hackaday article for  more comprehensive script in PowerShell.
 
 */
 
@@ -53,7 +52,8 @@
 Modified files:
 
 USB_DEVICE/App/usbd_cdc_if.c
-	  CmdExtractCmd(&Buf[0], Len);	// Function to extract the commands to the device
+    #include "cmd_process.h"
+	CmdExtractCmd(&Buf[0], Len);	// Function to extract the commands to the device
 
 USB_DEVICE/App/usbd_desc.c
 	*length = 2; // *** Kill the serial Number
